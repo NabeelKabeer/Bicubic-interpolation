@@ -1,5 +1,18 @@
 import numpy as np
 import scipy.misc
+import Image
+import sys
+import time
+import math
+
+def update_progress(job_title, progress,size):
+    length = 50 
+    block = int(round(length*progress))
+    msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 2))
+    if progress >= 1: msg += " DONE\r\n"
+    sys.stdout.flush()
+    sys.stdout.write(msg)
+    #sys.stdout.flush()
 
 def p(x,y,a):
     sum = 0
@@ -47,10 +60,13 @@ def bicubic(sample):
 def upscale_image(image):
 
     x_size,y_size = image.shape
+    size = x_size*y_size        #will use it as a global variable
     enhanced_image = np.zeros((2*x_size,2*y_size),np.uint8)
-    
-    for x in range(0,x_size):
-	for y in range(0,y_size):
+    nsum = 0
+
+    for x in range(0,x_size,2):
+	   for y in range(0,y_size,2):
+	    nsum = nsum+1            
 	    sample = np.zeros((2,2))
 	    sample[0][0] = image[x][y]
 	    if x + 1 < x_size and y < y_size:
@@ -65,24 +81,48 @@ def upscale_image(image):
 		for j in range(0,4):
 		    if 2*x + i < 2*x_size and 2*y +j < 2*y_size:
 			enhanced_image[2*x + i][2 * y + j] = p(i,j,a)
+		size_f = float(size)
+		size_f = size_f/4
+		#time.sleep(0.1)
+	    update_progress("Super Resolution at work", nsum/size_f,size_f)
+    #update_progress("Super Resolution at work", 1,size_f)
+            
+    print nsum
     return enhanced_image
 
     
+def psnr(original,sample_4x,m,n):
+	sum=0
+	for i in range(0,m):
+		for j in range(0,n):
+			sum_red+=(original[i,j,0] - sample_4x[i,j,0])**2
+      sum_green+=(original[i,j,1] - sample_4x[i,j,1])**2
+      sum_blue+=(original[i,j,2] - sample_4x[i,j,2])**2
+	mse=(sum_red + sum_green + sum_blue)/(3*m*n)
 
-sample = scipy.misc.imread('nrj4.jpg')
+	ps=20*math.log10(255)-10*math.log10(mse)
+	return ps
 
-print 'image size:',sample.shape
+sample = scipy.misc.imread('input_image.jpg')
+size_x,size_y,_ = sample.shape
 
-sample_4x = np.zeros((sample.shape[0]*2,sample.shape[1]*2,3),np.uint8)
+sample_down = scipy.misc.imresize(sample,(size_x/2,size_y/2)) 
+
+print 'image size:',sample_down.shape
+
+print 'SAMPLE IMAGE'
+print sample_down
+
+sample_4x = np.zeros((sample_down.shape[0]*2,sample_down.shape[1]*2,3),np.uint8)
 
 
-sample_4x[:,:,0] = upscale_image(sample[:,:,0])
+sample_4x[:,:,0] = upscale_image(sample_down[:,:,0])
 print 'red done'
-sample_4x[:,:,1] = upscale_image(sample[:,:,1])
+sample_4x[:,:,1] = upscale_image(sample_down[:,:,1])
 print 'green done'
-sample_4x[:,:,2] = upscale_image(sample[:,:,2])
+sample_4x[:,:,2] = upscale_image(sample_dowm[:,:,2])
 print 'blue done'
 
-scipy.misc.imsave('nrj4.jpg',sample_4x)
-
+scipy.misc.imsave('output_image.jpg',sample_4x)
+print 'PSNR IS: ' + str(psnr(sample_4x,sample,size_x,size_y))+ "dB"
 print 'full doned'
