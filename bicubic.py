@@ -1,5 +1,18 @@
 import numpy as np
 import scipy.misc
+import Image
+import sys
+import time
+import math
+
+def update_progress(job_title, progress,size):
+    length = 50 
+    block = int(round(length*progress))
+    msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 2))
+    if progress >= 1: msg += " DONE\r\n"
+    sys.stdout.flush()
+    sys.stdout.write(msg)
+    #sys.stdout.flush()
 
 def p(x,y,a):
     sum = 0
@@ -50,10 +63,13 @@ def bicubic(sample):
 def upscale_image(image):
 
     x_size,y_size = image.shape
-    enhanced_image = np.zeros((2*x_size,2*y_size))
-    
+    size = x_size*y_size        #will use it as a global variable
+    enhanced_image = np.zeros((2*x_size,2*y_size),np.uint8)
+    nsum = 0
+
     for x in range(0,x_size,2):
-	for y in range(0,y_size,2):
+	   for y in range(0,y_size,2):
+	    nsum = nsum+1        
 	    sample = np.zeros((2,2))
 	    sample[0][0] = image[x][y]
 	    if x + 1 < x_size and y < y_size:
@@ -71,20 +87,47 @@ def upscale_image(image):
 		    if 2*x + i < 2*x_size and 2*y +j < 2*y_size:
 		        #enhanced_image[2*x+i][2*y+j] = sample_4x[i][j] 
 			enhanced_image[2*x + i][2 * y + j] = p(i,j,a)
+		size_f = float(size)
+		size_f = size_f/4
+		#time.sleep(0.1)
+	    update_progress("Super Resolution at work", nsum/size_f,size_f)
+    update_progress("Super Resolution at work", 1,size_f)
+            
+    print nsum
     return enhanced_image
 
     
 
-sample = scipy.misc.imread('google.jpg',True)
+def psnr(original,sample_4x,m,n):
+	sum=0
+	for i in range(0,m):
+		for j in range(0,n):
+			sum+=(original[i,j] - sample_4x[i,j])**2
+	mse=sum/(m*n)
 
-print 'image size:',sample.shape
+	ps=20*math.log10(255)-10*math.log10(mse)
+	return ps
+
+
+sample = scipy.misc.imread('sam.jpg',True)
+size_x,size_y = sample.shape
+
+sample_down = scipy.misc.imresize(sample,(size_x/2,size_y/2)) 
+
+print 'image size:',sample_down.shape
 
 print 'SAMPLE IMAGE'
-print sample
+print sample_down
 
-sample_4x = upscale_image(sample)
+sample_4x = upscale_image(sample_down)
 print 'SAMPLE 4_X'
 print sample_4x
 
-scipy.misc.imsave('test_4xxx.jpg',sample_4x)
+#im = Image.fromarray(sample_4x)
+#im = im.convert('RGB')
+#im.save('test_image_new.jpg')
 
+
+scipy.misc.imsave('new_test_4xxx.jpg',sample_4x)
+
+print 'PSNR IS: ' + str(psnr(sample_4x,sample,size_x,size_y))+ "dB"
