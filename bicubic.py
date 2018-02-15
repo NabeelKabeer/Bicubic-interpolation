@@ -6,7 +6,6 @@ def p(x,y,a):
     for i in range(0,4):
 	for j in range(0,4):
 	    sum += a[i][j] * x**i * y**j
-
     return sum
 
     
@@ -40,8 +39,6 @@ def bicubic(sample):
     mid_m[3][2] = sample_grad_xy[1][0]
     mid_m[3][3] = sample_grad_xy[1][1]
 
-    #print 'MIDDLE MATRIX'
-    #print mid_m
 
     result = np.dot(np.dot(left_m ,mid_m), right_m)
 
@@ -50,10 +47,10 @@ def bicubic(sample):
 def upscale_image(image):
 
     x_size,y_size = image.shape
-    enhanced_image = np.zeros((2*x_size,2*y_size))
+    enhanced_image = np.zeros((2*x_size,2*y_size),np.uint8)
     
-    for x in range(0,x_size,2):
-	for y in range(0,y_size,2):
+    for x in range(0,x_size):
+	for y in range(0,y_size):
 	    sample = np.zeros((2,2))
 	    sample[0][0] = image[x][y]
 	    if x + 1 < x_size and y < y_size:
@@ -62,29 +59,30 @@ def upscale_image(image):
 		sample[0][1] = image[x][y+1]
 	    if x +1 < x_size and y+1 < y_size:
 		sample[1][1] = image[x+1][y+1]
-		
-	    a = bicubic(sample)
-	    #print 'COEFFICENTS'
-	    #print a
+
+            a = bicubic(sample)
 	    for i in range(0,4):
 		for j in range(0,4):
 		    if 2*x + i < 2*x_size and 2*y +j < 2*y_size:
-		        #enhanced_image[2*x+i][2*y+j] = sample_4x[i][j] 
 			enhanced_image[2*x + i][2 * y + j] = p(i,j,a)
     return enhanced_image
 
     
 
-sample = scipy.misc.imread('google.jpg',True)
+sample = scipy.misc.imread('nrj4.jpg')
 
 print 'image size:',sample.shape
 
-print 'SAMPLE IMAGE'
-print sample
+sample_4x = np.zeros((sample.shape[0]*2,sample.shape[1]*2,3),np.uint8)
 
-sample_4x = upscale_image(sample)
-print 'SAMPLE 4_X'
-print sample_4x
 
-scipy.misc.imsave('test_4xxx.jpg',sample_4x)
+sample_4x[:,:,0] = upscale_image(sample[:,:,0])
+print 'red done'
+sample_4x[:,:,1] = upscale_image(sample[:,:,1])
+print 'green done'
+sample_4x[:,:,2] = upscale_image(sample[:,:,2])
+print 'blue done'
 
+scipy.misc.imsave('nrj4.jpg',sample_4x)
+
+print 'full doned'
