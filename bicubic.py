@@ -5,14 +5,15 @@ import sys
 import time
 import math
 
+
 def update_progress(job_title, progress,size):
     length = 50 
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 2))
     if progress >= 1: msg += " DONE\r\n"
-    sys.stdout.flush()
-    sys.stdout.write(msg)
     #sys.stdout.flush()
+    sys.stdout.write(msg)
+    sys.stdout.flush()
 
 def p(x,y,a):
     sum = 0
@@ -64,8 +65,8 @@ def upscale_image(image):
     enhanced_image = np.zeros((2*x_size,2*y_size),np.uint8)
     nsum = 0
 
-    for x in range(0,x_size,2):
-	   for y in range(0,y_size,2):
+    for x in range(0,x_size):
+	   for y in range(0,y_size):
 	    nsum = nsum+1            
 	    sample = np.zeros((2,2))
 	    sample[0][0] = image[x][y]
@@ -82,7 +83,7 @@ def upscale_image(image):
 		    if 2*x + i < 2*x_size and 2*y +j < 2*y_size:
 			enhanced_image[2*x + i][2 * y + j] = p(i,j,a)
 		size_f = float(size)
-		size_f = size_f/4
+		#size_f = size_f/4
 		#time.sleep(0.1)
 	    update_progress("Super Resolution at work", nsum/size_f,size_f)
     #update_progress("Super Resolution at work", 1,size_f)
@@ -92,22 +93,24 @@ def upscale_image(image):
 
     
 def psnr(original,sample_4x,m,n):
-	sum=0
+	sum_red=sum_green=sum_blue=0
 	for i in range(0,m):
-		for j in range(0,n):
-			sum_red+=(original[i,j,0] - sample_4x[i,j,0])**2
-      sum_green+=(original[i,j,1] - sample_4x[i,j,1])**2
-      sum_blue+=(original[i,j,2] - sample_4x[i,j,2])**2
+	    for j in range(0,n):
+	        sum_red   += int((original[i,j,0] - sample_4x[i,j,0]))**2
+                sum_green += int((original[i,j,1] - sample_4x[i,j,1]))**2
+                sum_blue  += int((original[i,j,2] - sample_4x[i,j,2]))**2
 	mse=(sum_red + sum_green + sum_blue)/(3*m*n)
 
 	ps=20*math.log10(255)-10*math.log10(mse)
 	return ps
+
 
 sample = scipy.misc.imread('input_image.jpg')
 size_x,size_y,_ = sample.shape
 
 sample_down = scipy.misc.imresize(sample,(size_x/2,size_y/2)) 
 
+scipy.misc.imsave('down_image.jpg',sample_down)
 print 'image size:',sample_down.shape
 
 print 'SAMPLE IMAGE'
@@ -120,7 +123,7 @@ sample_4x[:,:,0] = upscale_image(sample_down[:,:,0])
 print 'red done'
 sample_4x[:,:,1] = upscale_image(sample_down[:,:,1])
 print 'green done'
-sample_4x[:,:,2] = upscale_image(sample_dowm[:,:,2])
+sample_4x[:,:,2] = upscale_image(sample_down[:,:,2])
 print 'blue done'
 
 scipy.misc.imsave('output_image.jpg',sample_4x)
