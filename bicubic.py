@@ -1,13 +1,18 @@
 import numpy as np
 import scipy.misc
-import Image
+from PIL import Image
 import sys
 import time
 import math
+import argparse
 
+parser = argparse.ArgumentParser(description="Python Implementation of Bicubic - Interpolation")
+parser.add_argument('--input',default='resources/input_image.jpg', type=str,help='input or ground truth image path')
+parser.add_argument('--downsample',default='resources/down_image.jpg',type=str,help='down sampled image generated for testing')
+parser.add_argument('--output',default='resources/output_image.jpg', type=str,help='output image path')
 
 def update_progress(job_title, progress,size):
-    length = 50 
+    length = 50
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 2))
     if progress >= 1: msg += " DONE\r\n"
@@ -22,7 +27,7 @@ def p(x,y,a):
 	    sum += a[i][j] * x**i * y**j
     return sum
 
-    
+
 
 def bicubic(sample):
     left_m = np.array(np.mat('1 0 0 0; 0 0 1 0; -3 3 -2 -1; 2 -2 1 1'))
@@ -67,7 +72,7 @@ def upscale_image(image):
 
     for x in range(0,x_size):
 	   for y in range(0,y_size):
-	    nsum = nsum+1            
+	    nsum = nsum+1
 	    sample = np.zeros((2,2))
 	    sample[0][0] = image[x][y]
 	    if x + 1 < x_size and y < y_size:
@@ -87,11 +92,11 @@ def upscale_image(image):
 		#time.sleep(0.1)
 	    update_progress("Super Resolution at work", nsum/size_f,size_f)
     #update_progress("Super Resolution at work", 1,size_f)
-            
+
     print nsum
     return enhanced_image
 
-    
+
 def psnr(original,sample_4x,m,n):
 	sum_red=sum_green=sum_blue=0
 	for i in range(0,m):
@@ -105,12 +110,14 @@ def psnr(original,sample_4x,m,n):
 	return ps
 
 
-sample = scipy.misc.imread('input_image.jpg')
+opt = parser.parse_args()
+
+sample = scipy.misc.imread(opt.input)
 size_x,size_y,_ = sample.shape
 
-sample_down = scipy.misc.imresize(sample,(size_x/2,size_y/2)) 
+sample_down = scipy.misc.imresize(sample,(size_x/2,size_y/2))
 
-scipy.misc.imsave('down_image.jpg',sample_down)
+scipy.misc.imsave(opt.downsample,sample_down)
 print 'image size:',sample_down.shape
 
 print 'SAMPLE IMAGE'
@@ -126,6 +133,5 @@ print 'green done'
 sample_4x[:,:,2] = upscale_image(sample_down[:,:,2])
 print 'blue done'
 
-scipy.misc.imsave('output_image.jpg',sample_4x)
+scipy.misc.imsave(opt.output,sample_4x)
 print 'PSNR IS: ' + str(psnr(sample_4x,sample,size_x,size_y))+ "dB"
-print 'full doned'
